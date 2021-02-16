@@ -5,6 +5,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import top.kyokoswork.manga_reptile.entities.Chapter;
+import top.kyokoswork.manga_reptile.entities.Manga;
 import top.kyokoswork.manga_reptile.enums.StateE;
 import top.kyokoswork.manga_reptile.service.IMangaReptileService;
 import top.kyokoswork.manga_reptile.utils.RespResult;
@@ -24,13 +25,25 @@ public class MangaReptileController {
 
     /**
      * 获取漫画章节
+     *
      * @param url 漫画地址
      * @return 章节地址
      */
     @GetMapping("/chapters")
-    private RespResult<?> getChapters(String url){
-        mangaReptileService.getChapters(url);
-        return new RespResult<>(StateE.SUCCESS);
+    private RespResult<Manga> getManga(HttpSession httpSession, String url) {
+        Manga manga = mangaReptileService.mangaDetail(url);
+        // 存入manga到session
+        session = httpSession;
+        session.setAttribute("manga", manga);
+        return new RespResult<>(manga);
+    }
+
+    @GetMapping("/downloadManga")
+    private RespResult<String> downloadManga(String siteUrl) {
+        // 从session获取漫画
+        Manga manga = (Manga) session.getAttribute("manga");
+        String downloadUrl = mangaReptileService.downloadManga(manga, siteUrl);
+        return new RespResult<>(downloadUrl);
     }
 
     /**
@@ -56,7 +69,7 @@ public class MangaReptileController {
      * @param siteUrl 本页面地址
      * @return ZIP下载链接
      */
-    @GetMapping("/download")
+    @GetMapping("/downloadChapter")
     private RespResult<String> downloadChapter(String siteUrl) {
         // 从session获取chapter
         Chapter chapter = (Chapter) session.getAttribute("chapter");
@@ -66,7 +79,7 @@ public class MangaReptileController {
         // 还未获取漫画详情
         if (images == null) return new RespResult<>(StateE.DETAILS_ERROR);
         // 返回下载链接
-        String downloadUrl = mangaReptileService.download(chapter, siteUrl);
+        String downloadUrl = mangaReptileService.downloadChapter(chapter, siteUrl);
 
         return new RespResult<>(downloadUrl);
     }

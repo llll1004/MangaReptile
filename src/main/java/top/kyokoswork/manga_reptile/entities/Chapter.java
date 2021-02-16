@@ -10,6 +10,10 @@ import java.util.List;
 @Accessors(chain = true)
 public class Chapter implements Serializable {
     /**
+     * 章节地址id
+     */
+    private String id;
+    /**
      * 章节名
      */
     private String name;

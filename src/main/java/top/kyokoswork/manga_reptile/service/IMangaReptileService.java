@@ -1,17 +1,25 @@
 package top.kyokoswork.manga_reptile.service;
 
 import top.kyokoswork.manga_reptile.entities.Chapter;
-
-import java.util.List;
+import top.kyokoswork.manga_reptile.entities.Manga;
 
 public interface IMangaReptileService {
     /**
-     * 获取漫画章节
+     * 获取漫画
      *
      * @param url 漫画地址
-     * @return 漫画章节
+     * @return 漫画对象
      */
-    List<Chapter> getChapters(String url);
+    Manga mangaDetail(String url);
+
+    /**
+     * 下载漫画
+     *
+     * @param manga 漫画地址
+     * @param siteUrl 本页面地址
+     * @return ZIP下载链接
+     */
+    String downloadManga(Manga manga, String siteUrl);
 
     /**
      * 获取章节
@@ -22,11 +30,11 @@ public interface IMangaReptileService {
     Chapter chapterDetail(String url);
 
     /**
-     * 下载漫画
+     * 下载章节
      *
-     * @param chapter 漫画内容地址
+     * @param chapter 章节地址
      * @param siteUrl 本页面地址
      * @return ZIP下载链接
      */
-    String download(Chapter chapter, String siteUrl);
+    String downloadChapter(Chapter chapter, String siteUrl);
 }

@@ -4,8 +4,6 @@ import com.gargoylesoftware.htmlunit.BrowserVersion;
 import com.gargoylesoftware.htmlunit.NicelyResynchronizingAjaxController;
 import com.gargoylesoftware.htmlunit.WebClient;
 import com.gargoylesoftware.htmlunit.WebClientOptions;
-import com.gargoylesoftware.htmlunit.html.DomElement;
-import com.gargoylesoftware.htmlunit.html.DomNodeList;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -16,12 +14,10 @@ import top.kyokoswork.manga_reptile.entities.Manga;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Objects;
 
 public class MangaUtil {
-    private static WebClient webClient;
-
     /**
      * 获取漫画
      *
@@ -32,32 +28,53 @@ public class MangaUtil {
         // 解析页面
         String xml = page.asXml();
         Document document = Jsoup.parse(xml);
-        Elements itemBoxes = document.getElementsByClass("item-box");
 
-        System.out.println(xml);
+        Element nameEl = document.getElementsByClass("title fs-md").get(0);
+        String name = nameEl.ownText();
 
-        for (Element itemBox : itemBoxes) {
-            System.out.println(itemBox.ownText());
+        Element authorEl = document.getElementsByClass("fs-xs mar-top-20").get(0);
+        String author = authorEl.ownText().substring(4);
+
+        String content = xml.substring(xml.indexOf("aid="), xml.indexOf("return"));
+
+        List<Chapter> chapters = new ArrayList<>();
+        int aidIndex = content.indexOf("aid=");
+        int titleIndex = content.indexOf("title=");
+
+        while (aidIndex != -1) {
+            Chapter chapter = new Chapter();
+            chapter.setId(content.substring(aidIndex + 4, aidIndex + 11));
+            chapter.setName(content.substring(titleIndex + 7, content.indexOf("\"", content.indexOf("\"") + 1)));
+            int i = content.indexOf("aid=", 1);
+            if (i == -1) break;
+            content = content.substring(i);
+            aidIndex = content.indexOf("aid=");
+            titleIndex = content.indexOf("title=");
+            chapters.add(chapter);
         }
 
-        DomNodeList<DomElement> divs = page.getElementsByTagName("div");
-        for (DomElement div : divs) {
-            String attribute = div.getAttribute("class");
-            if (Objects.equals(attribute, "item-box")) {
-                try {
-                    System.out.println(div.getTextContent());
-                    div.click();
+        chapters.sort(Comparator.comparing(Chapter::getId));
 
-                    System.out.println(webClient.getWebWindows().size());
-                    return null;
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+        Manga manga = new Manga();
+        manga.setChapters(chapters).setName(name).setAuthor(author);
 
+//        DomNodeList<DomElement> divs = page.getElementsByTagName("div");
+//        for (DomElement div : divs) {
+//            String attribute = div.getAttribute("class");
+//            if (Objects.equals(attribute, "item-box")) {
+//                try {
+//                    System.out.println(div.getTextContent());
+//                    div.click();
+//
+//                    System.out.println(webClient.getWebWindows().size());
+//                    return null;
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
 
-        return null;
+        return manga;
     }
 
     /**
@@ -95,7 +112,7 @@ public class MangaUtil {
      */
     public static HtmlPage getHtmlPage(String url) {
         // 获取浏览器对象
-        webClient = new WebClient(BrowserVersion.CHROME);
+        WebClient webClient = new WebClient(BrowserVersion.CHROME);
         // 启用Ajax
         webClient.setAjaxController(new NicelyResynchronizingAjaxController());
 
@@ -110,6 +127,13 @@ public class MangaUtil {
         options.setActiveXNative(false);
         // 使用JS
         options.setJavaScriptEnabled(true);
+        options.setDownloadImages(false);
+
+//        options.setTimeout(30000);
+//        options.setRedirectEnabled(true);
+//        options.setUseInsecureSSL(true);
+//        webClient.setJavaScriptTimeout(30000);
+//        webClient.setRefreshHandler(new ImmediateRefreshHandler());
 
         HtmlPage page = null;
         try {
@@ -120,7 +144,7 @@ public class MangaUtil {
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-//            webClient.close();
+            webClient.close();
         }
 
         return page;

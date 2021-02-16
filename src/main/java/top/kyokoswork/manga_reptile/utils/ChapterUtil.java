@@ -6,14 +6,13 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.util.Vector;
 
-public class ImageUtil implements Runnable {
-
+public class ChapterUtil implements Runnable{
     private final int i;
     private final String url;
     private final InputStream[] ins;
     private final Vector<Integer> flag;
 
-    public ImageUtil(int i, String url, InputStream[] ins, Vector<Integer> flag) {
+    public ChapterUtil(int i, String url, InputStream[] ins, Vector<Integer> flag) {
         this.i = i;
         this.url = url;
         this.ins = ins;
@@ -22,7 +21,7 @@ public class ImageUtil implements Runnable {
 
     @Override
     public void run() {
-        System.out.println("获取第 " + i + " 张...");
+        System.out.println("获取第 " + i + " 章...");
         InputStream is = null;
         try {
             URL u = new URL(url);
@@ -37,6 +36,6 @@ public class ImageUtil implements Runnable {
 
         ins[i] = is;
         flag.add(1);
-        System.out.println("第 " + i + " 张获取成功");
+        System.out.println("第 " + i + " 章获取成功");
     }
 }
