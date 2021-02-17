@@ -35,14 +35,25 @@ public class MangaReptileController {
         // 存入manga到session
         session = httpSession;
         session.setAttribute("manga", manga);
+
         return new RespResult<>(manga);
     }
 
+    /**
+     * 下载漫画
+     *
+     * @param siteUrl 本页面地址
+     * @return ZIP下载链接
+     */
     @GetMapping("/downloadManga")
     private RespResult<String> downloadManga(String siteUrl) {
         // 从session获取漫画
         Manga manga = (Manga) session.getAttribute("manga");
+        // 还未获取漫画章节
+        if (manga.getChapters() == null) return new RespResult<>(StateE.DETAILS_ERROR);
+        // 获取下载链接
         String downloadUrl = mangaReptileService.downloadManga(manga, siteUrl);
+
         return new RespResult<>(downloadUrl);
     }
 
@@ -54,7 +65,6 @@ public class MangaReptileController {
      */
     @GetMapping("/detail")
     private RespResult<Chapter> chapterDetail(HttpSession httpSession, String url) {
-
         Chapter chapter = mangaReptileService.chapterDetail(url);
         // 存入chapter到session
         session = httpSession;
@@ -76,9 +86,9 @@ public class MangaReptileController {
 
         // 获取图片链接
         List<String> images = chapter.getImages();
-        // 还未获取漫画详情
+        // 还未获取章节详情
         if (images == null) return new RespResult<>(StateE.DETAILS_ERROR);
-        // 返回下载链接
+        // 获取下载链接
         String downloadUrl = mangaReptileService.downloadChapter(chapter, siteUrl);
 
         return new RespResult<>(downloadUrl);

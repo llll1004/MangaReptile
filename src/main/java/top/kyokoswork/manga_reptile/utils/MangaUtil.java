@@ -29,30 +29,34 @@ public class MangaUtil {
         String xml = page.asXml();
         Document document = Jsoup.parse(xml);
 
+        // 获取漫画名
         Element nameEl = document.getElementsByClass("title fs-md").get(0);
         String name = nameEl.ownText();
-
+        // 获取漫画作者
         Element authorEl = document.getElementsByClass("fs-xs mar-top-20").get(0);
         String author = authorEl.ownText().substring(4);
 
-        String content = xml.substring(xml.indexOf("aid="), xml.indexOf("return"));
-
+        // 获取章节id、章节名
         List<Chapter> chapters = new ArrayList<>();
+        String content = xml.substring(xml.indexOf("aid="), xml.indexOf("return"));
+        // 章节id下标
         int aidIndex = content.indexOf("aid=");
+        // 章节名下标
         int titleIndex = content.indexOf("title=");
-
+        // 截取章节信息
         while (aidIndex != -1) {
             Chapter chapter = new Chapter();
             chapter.setId(content.substring(aidIndex + 4, aidIndex + 11));
             chapter.setName(content.substring(titleIndex + 7, content.indexOf("\"", content.indexOf("\"") + 1)));
             int i = content.indexOf("aid=", 1);
+            // if - 截取完毕
             if (i == -1) break;
             content = content.substring(i);
             aidIndex = content.indexOf("aid=");
             titleIndex = content.indexOf("title=");
             chapters.add(chapter);
         }
-
+        // 按章节id排序 注意:由于补档存在,不一定是正确的章节顺序
         chapters.sort(Comparator.comparing(Chapter::getId));
 
         Manga manga = new Manga();
