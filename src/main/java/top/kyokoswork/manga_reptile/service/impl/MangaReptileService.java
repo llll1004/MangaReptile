@@ -14,7 +14,9 @@ import top.kyokoswork.manga_reptile.service.IMangaReptileService;
 import top.kyokoswork.manga_reptile.utils.ChapterUtil;
 import top.kyokoswork.manga_reptile.utils.ImageUtil;
 import top.kyokoswork.manga_reptile.utils.MangaUtil;
+import top.kyokoswork.manga_reptile.utils.WebSocketUtil;
 
+import javax.websocket.Session;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Vector;
@@ -38,12 +40,13 @@ public class MangaReptileService implements IMangaReptileService {
     /**
      * 下载漫画
      *
-     * @param manga   漫画地址
-     * @param siteUrl 本页面地址
+     * @param manga     漫画地址
+     * @param siteUrl   本页面地址
+     * @param wsSession WebSocket Session
      * @return ZIP下载链接
      */
     @Override
-    public String downloadManga(Manga manga, String siteUrl) {
+    public String downloadManga(Manga manga, String siteUrl, Session wsSession) {
         List<Chapter> chapters = manga.getChapters();
 
         // 设置章节名
@@ -55,10 +58,18 @@ public class MangaReptileService implements IMangaReptileService {
         // 获取章节地址
         String[] chapterUrls = new String[chapters.size()];
         for (int i = 0; i < chapters.size(); i++) {
-            String url = "https://www.lightnovel.us/detail/" + chapters.get(i).getId();
-            chapters.get(i).setImages(chapterDetail(url).getImages());
-            String s = downloadChapter(chapters.get(i), siteUrl);
-            s = URLUtil.encode(s);
+            WebSocketUtil.sendMessage(wsSession, "wsMsg:获取章节中 " + (i + 1) + "/" + chapters.size());
+            String url = checkCache(chapters.get(i).getName(), siteUrl);
+            System.out.println(url);
+            String s;
+            if (url == null) {
+                url = "https://www.lightnovel.us/detail/" + chapters.get(i).getId();
+                chapters.get(i).setImages(chapterDetail(url).getImages());
+                s = downloadChapter(chapters.get(i), siteUrl, null);
+                s = URLUtil.encode(s);
+            } else {
+                s = URLUtil.encode(url);
+            }
             chapterUrls[i] = s;
         }
 
@@ -80,8 +91,11 @@ public class MangaReptileService implements IMangaReptileService {
         }
 
         LOGGER.info("尝试压缩文件...");
-        ZipUtil.zip(FileUtil.touch("file:/home/download/" + manga.getName() + ".zip"), chapterNames, ins);
+        WebSocketUtil.sendMessage(wsSession, "wsMsg:打包漫画中...");
+        ZipUtil.zip(FileUtil.touch("file:/home/download/" + manga.getName() + ".zip"),
+                chapterNames, ins);
         LOGGER.info("压缩文件成功");
+        WebSocketUtil.sendMessage(wsSession, "wsMsg:打包完毕");
 
         return siteUrl + manga.getName() + ".zip";
     }
@@ -103,12 +117,13 @@ public class MangaReptileService implements IMangaReptileService {
     /**
      * 下载章节压缩包
      *
-     * @param chapter 章节
-     * @param siteUrl 本页面地址
+     * @param chapter   章节
+     * @param siteUrl   本页面地址
+     * @param wsSession WebSocket Session
      * @return ZIP下载链接
      */
     @Override
-    public String downloadChapter(Chapter chapter, String siteUrl) {
+    public String downloadChapter(Chapter chapter, String siteUrl, Session wsSession) {
         List<String> urls = chapter.getImages();
         // 定义图片数量及图片名
         String[] paths = new String[urls.size()];
@@ -128,6 +143,8 @@ public class MangaReptileService implements IMangaReptileService {
         while (flag.size() != urls.size()) {
             try {
                 Thread.sleep(1000);
+                WebSocketUtil.sendMessage(wsSession,
+                        "wsMsg:获取图片中 " + flag.size() + "/" + urls.size());
                 System.out.println(flag.size() + "/" + urls.size());
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -136,9 +153,29 @@ public class MangaReptileService implements IMangaReptileService {
         LOGGER.info("输入流获取完毕");
 
         LOGGER.info("尝试压缩文件...");
+        WebSocketUtil.sendMessage(wsSession, "wsMsg:打包章节中...");
+        System.out.println(chapter.getName());
         ZipUtil.zip(FileUtil.touch("file:/home/download/" + chapter.getName() + ".zip"), paths, ins);
         LOGGER.info("压缩文件成功");
+        WebSocketUtil.sendMessage(wsSession, "wsMsg:打包完毕");
+
 
         return siteUrl + chapter.getName() + ".zip";
+    }
+
+    /**
+     * 检查是否已缓存
+     *
+     * @param chapterName 文件名
+     * @param siteUrl     本页面地址
+     * @return 文件路径
+     */
+    @Override
+    public String checkCache(String chapterName, String siteUrl) {
+        if (FileUtil.exist("file:/home/download/" + chapterName + ".zip")) {
+            return siteUrl + chapterName + ".zip";
+        }
+
+        return null;
     }
 }

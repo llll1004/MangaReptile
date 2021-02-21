@@ -13,23 +13,17 @@ import javax.websocket.server.ServerEndpoint;
 @ServerEndpoint("/websocket/{userName}")
 public class WebSocketHandler {
 
-    public Session getSession() {
-        return session;
-    }
-
-    private Session session;
-
     //建立连接
     @OnOpen
     public void openSession(@PathParam("userName") String userName, Session session) {
-        this.session = session;
         //加入用户名单
         WebSocketUtil.USER_MAP.put(userName, session);
+        WebSocketUtil.sendMessage(session,"已连接到服务器");
     }
 
     @OnMessage
     public void onMessage(@PathParam("userName") String userName, String message) {
         message = userName + ":" + message;
-        WebSocketUtil.sendMessageToAll(message);
+        System.out.println(message);
     }
 }

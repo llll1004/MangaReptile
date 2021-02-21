@@ -9,9 +9,11 @@ import top.kyokoswork.manga_reptile.entities.Manga;
 import top.kyokoswork.manga_reptile.enums.StateE;
 import top.kyokoswork.manga_reptile.service.IMangaReptileService;
 import top.kyokoswork.manga_reptile.utils.RespResult;
+import top.kyokoswork.manga_reptile.utils.WebSocketUtil;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpSession;
+import javax.websocket.Session;
 import java.util.List;
 
 @RestController
@@ -21,7 +23,15 @@ public class MangaReptileController {
     @Resource
     private IMangaReptileService mangaReptileService;
 
-    private HttpSession session;
+    /**
+     * 获取SessionID
+     *
+     * @return SessionID
+     */
+    @GetMapping("/connect")
+    private RespResult<String> getUUID(HttpSession httpSession) {
+        return new RespResult<>(httpSession.getId());
+    }
 
     /**
      * 获取漫画章节
@@ -33,8 +43,7 @@ public class MangaReptileController {
     private RespResult<Manga> getManga(HttpSession httpSession, String url) {
         Manga manga = mangaReptileService.mangaDetail(url);
         // 存入manga到session
-        session = httpSession;
-        session.setAttribute("manga", manga);
+        httpSession.setAttribute("manga", manga);
 
         return new RespResult<>(manga);
     }
@@ -46,13 +55,16 @@ public class MangaReptileController {
      * @return ZIP下载链接
      */
     @GetMapping("/downloadManga")
-    private RespResult<String> downloadManga(String siteUrl) {
+    private RespResult<String> downloadManga(HttpSession httpSession, String siteUrl) {
         // 从session获取漫画
-        Manga manga = (Manga) session.getAttribute("manga");
+        Manga manga = (Manga) httpSession.getAttribute("manga");
+        // 获取wsSession
+        Session wsSession = WebSocketUtil.USER_MAP.get(httpSession.getId());
+
         // 还未获取漫画章节
         if (manga.getChapters() == null) return new RespResult<>(StateE.DETAILS_ERROR);
         // 获取下载链接
-        String downloadUrl = mangaReptileService.downloadManga(manga, siteUrl);
+        String downloadUrl = mangaReptileService.downloadManga(manga, siteUrl, wsSession);
 
         return new RespResult<>(downloadUrl);
     }
@@ -67,8 +79,7 @@ public class MangaReptileController {
     private RespResult<Chapter> chapterDetail(HttpSession httpSession, String url) {
         Chapter chapter = mangaReptileService.chapterDetail(url);
         // 存入chapter到session
-        session = httpSession;
-        session.setAttribute("chapter", chapter);
+        httpSession.setAttribute("chapter", chapter);
 
         return new RespResult<>(chapter);
     }
@@ -80,16 +91,22 @@ public class MangaReptileController {
      * @return ZIP下载链接
      */
     @GetMapping("/downloadChapter")
-    private RespResult<String> downloadChapter(String siteUrl) {
+    private RespResult<String> downloadChapter(HttpSession httpSession, String siteUrl) {
         // 从session获取chapter
-        Chapter chapter = (Chapter) session.getAttribute("chapter");
+        Chapter chapter = (Chapter) httpSession.getAttribute("chapter");
+        String url = mangaReptileService.checkCache(chapter.getName(), siteUrl);
+        if (url != null) {
+            return new RespResult<>(url);
+        }
+        // 获取wsSession
+        Session wsSession = WebSocketUtil.USER_MAP.get(httpSession.getId());
 
         // 获取图片链接
         List<String> images = chapter.getImages();
         // 还未获取章节详情
         if (images == null) return new RespResult<>(StateE.DETAILS_ERROR);
         // 获取下载链接
-        String downloadUrl = mangaReptileService.downloadChapter(chapter, siteUrl);
+        String downloadUrl = mangaReptileService.downloadChapter(chapter, siteUrl, wsSession);
 
         return new RespResult<>(downloadUrl);
     }

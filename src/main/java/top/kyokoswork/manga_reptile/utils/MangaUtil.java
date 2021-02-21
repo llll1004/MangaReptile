@@ -42,19 +42,21 @@ public class MangaUtil {
         // 章节id下标
         int aidIndex = content.indexOf("aid=");
         // 章节名下标
-        int titleIndex = content.indexOf("title=");
+        int titleIndex = content.indexOf("\"");
         // 截取章节信息
         while (aidIndex != -1) {
             Chapter chapter = new Chapter();
             chapter.setId(content.substring(aidIndex + 4, aidIndex + 11));
-            chapter.setName(content.substring(titleIndex + 7, content.indexOf("\"", content.indexOf("\"") + 1)));
+            chapter.setName(content.substring(titleIndex + 1,
+                    content.indexOf("\"", content.indexOf("\"") + 1)));
+            chapters.add(chapter);
+
             int i = content.indexOf("aid=", 1);
             // if - 截取完毕
             if (i == -1) break;
             content = content.substring(i);
             aidIndex = content.indexOf("aid=");
-            titleIndex = content.indexOf("title=");
-            chapters.add(chapter);
+            titleIndex = content.indexOf("\"");
         }
         // 按章节id排序 注意:由于补档存在,不一定是正确的章节顺序
         chapters.sort(Comparator.comparing(Chapter::getId));
