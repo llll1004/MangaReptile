@@ -132,7 +132,7 @@ public class MangaUtil {
         // 关闭本地ActiveX
         options.setActiveXNative(false);
         // 使用JS
-        options.setJavaScriptEnabled(true);
+        options.setJavaScriptEnabled(false);
         options.setDownloadImages(false);
 
 //        options.setTimeout(30000);
